@@ -30,6 +30,7 @@ public class Main {
         System.out.println(epic2);
         taskManager.getTaskId(1);
         taskManager.getTaskId(2);
+        taskManager.getTaskId(1);
         System.out.println(taskManager.getHistory());
     }
 }

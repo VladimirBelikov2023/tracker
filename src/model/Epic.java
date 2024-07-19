@@ -2,8 +2,9 @@ package model;
 
 import java.util.ArrayList;
 
-public class Epic extends Task{
+public class Epic extends Task {
     private final ArrayList<Integer> lsSubTasks = new ArrayList<>();
+
     public Epic(String name, String description, Status status) {
         super(name, description, status);
     }
@@ -19,10 +20,11 @@ public class Epic extends Task{
                 '}';
     }
 
-    public void addSubTask(Integer id){
+    public void addSubTask(Integer id) {
         lsSubTasks.add(id);
     }
-    public ArrayList<Integer> getAllSubTask(){
+
+    public ArrayList<Integer> getAllSubTask() {
         return lsSubTasks;
     }
 
