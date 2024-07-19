@@ -1,3 +1,5 @@
+package manager;
+
 import model.Epic;
 import model.Status;
 import model.SubTask;
@@ -6,10 +8,10 @@ import model.Task;
 import java.util.HashMap;
 import java.util.List;
 
-public class InMemoryTaskManager implements Manager{
+public class InMemoryTaskManager implements TaskManager {
     private static int id = 0;
     private final HashMap<Integer, Task> tasks = new HashMap<>();
-
+    private final HistoryManager inMemoryHistoryManager = Managers.getDefaultHistoryManager();
     public List<Task> getAllTask(){
         return List.copyOf(tasks.values());
     }
@@ -17,7 +19,9 @@ public class InMemoryTaskManager implements Manager{
         tasks.clear();
     }
     public Task getTaskId(int idTask){
-        return tasks.get(idTask);
+        final Task task = tasks.get(idTask);
+        inMemoryHistoryManager.add(task);
+        return task;
     }
     public void createTask(Task task){
         task.setId(id);
@@ -55,5 +59,8 @@ public class InMemoryTaskManager implements Manager{
     public List<Integer> getSubtasks(int epicId){
         final Epic epic = (Epic)tasks.get(epicId);
         return epic.getAllSubTask();
+    }
+    public List<Task>getHistory(){
+        return inMemoryHistoryManager.getHistory();
     }
 }

@@ -1,8 +1,10 @@
+package manager;
+
 import model.Task;
 
 import java.util.List;
 
-public interface Manager {
+public interface TaskManager {
     List<Task> getAllTask();
     void deleteAllTasks();
     Task getTaskId(int idTask);
@@ -10,4 +12,5 @@ public interface Manager {
     void updateTask(Task task);
     void deleteTaskId(int idTask);
     List<Integer> getSubtasks(int epicId);
+    List<Task>getHistory();
 }
