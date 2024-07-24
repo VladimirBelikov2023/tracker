@@ -2,11 +2,12 @@ package model;
 
 public class Task {
     protected int id;
-    protected final String name;
-    protected final String description;
-    protected Status status = Status.New;
+    protected String name;
+    protected String description;
+    protected Status status = Status.NEW;
 
-    public Task(String name, String description, Status status) {
+    public Task(int id, String name, String description, Status status) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.status = status;
@@ -41,6 +42,14 @@ public class Task {
         this.id = id;
     }
 
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @Override
     public String toString() {
         return "Task{" +
@@ -50,4 +59,5 @@ public class Task {
                 ", status=" + status +
                 '}';
     }
+
 }
