@@ -5,15 +5,22 @@ import exception.WrongIdEpicException;
 import exception.WrongIdException;
 import model.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.time.Duration;
+import java.util.*;
 
 public class InMemoryTaskManager implements TaskManager {
     protected int id = 0;
     protected Map<Integer, Task> tasks = new HashMap<>();
     protected Scanner scanner;
+    protected TreeSet<Task> priority = new TreeSet<>((Task task1, Task task2) -> {
+        if(task1.getStartTime().isAfter(task2.getStartTime())){
+            return 1;
+        }else if(task1.getStartTime().isBefore(task2.getStartTime())){
+            return -1;
+        }else{
+            return 0;
+        }
+    });
     protected final HistoryManager inMemoryHistoryManager = Managers.getDefaultHistoryManager();
 
     public List<Task> getAllTask() {
@@ -23,15 +30,23 @@ public class InMemoryTaskManager implements TaskManager {
     public void deleteAllTasks() {
         inMemoryHistoryManager.clear();
         tasks.clear();
+        priority.clear();
+    }
+    public List<Task> getPrioritizedTask(){
+        return List.copyOf(priority);
+    }
+    public Task getTaskId(final int idTask){
+        Task task =  getTaskIdBase(idTask);
+        inMemoryHistoryManager.add(task);
+        return task;
     }
 
-    public Task getTaskId(final int idTask) {
+    private Task getTaskIdBase(final int idTask) {
         try {
             final Task task = tasks.get(idTask);
             if (task == null) {
                 throw new WrongIdException("Задача не найдена", scanner);
             }
-            inMemoryHistoryManager.add(task);
             return task;
         } catch (WrongIdException ex) {
             System.out.println(ex.getMessage());
@@ -47,13 +62,15 @@ public class InMemoryTaskManager implements TaskManager {
             task.setId(id);
             if (task instanceof SubTask) {
                 final SubTask subTask = (SubTask) task;
-                Task isEpic = getTaskId(subTask.getEpicId());
+                Task isEpic = getTaskIdBase(subTask.getEpicId());
                 Epic epic = (Epic) isEpic;
                 if (checkTypeTask(isEpic) != TypeTask.EPIC) {
                     throw new WrongIdException("Неверное указан epic id", scanner);
                 }
+                setEpicTime(epic, subTask);
                 epic.addSubTask(subTask.getId());
             }
+            priority.add(task);
             tasks.put(id, task);
             id++;
         } catch (WrongIdException ex) {
@@ -64,11 +81,32 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
+    private void setEpicTime(Epic epic, SubTask subTask){
+        if(epic.getStartTime() == null){
+            epic.setStartTime(subTask.getStartTime());
+            epic.setDuration(subTask.getDuration());
+        }else if(epic.getStartTime().isAfter(subTask.getStartTime())){
+            epic.setDuration(epic.getDuration() + Duration.between(epic.getStartTime(), subTask.getStartTime()).getSeconds()/60);
+        }else if(epic.getEndTime().isBefore(subTask.getEndTime())){
+            epic.setDuration(epic.getDuration() + Duration.between(epic.getEndTime(), subTask.getEndTime()).getSeconds()/60);
+        }
+    }
+    private void delEpicTime(Epic epic, SubTask subTask){
+        if(epic.getStartTime().isEqual(subTask.getStartTime())){
+            epic.setStartTime(epic.getStartTime().plus(Duration.between(subTask.getStartTime(),subTask.getEndTime())));
+            epic.setDuration(epic.getDuration() - subTask.getDuration());
+        }else if(epic.getEndTime().isEqual(subTask.getEndTime())){
+            epic.setDuration(epic.getDuration() - subTask.getDuration());
+        }
+    }
+
     public void updateTask(final Task task) {
         try {
             if (!isExist(task.getId())) {
                 throw new WrongIdException("Задача не найдена!", scanner);
             }
+            Task oldTask = getTaskIdBase(task.getId());
+            priority.remove(oldTask);
             if (task.getName().isEmpty() || task.getDescription().isBlank()) {
                 throw new WrongDataTaskException("Неверные данные задачи", scanner);
             }
@@ -93,7 +131,9 @@ public class InMemoryTaskManager implements TaskManager {
                 } else {
                     epic.setStatus(Status.IN_PROGRESS);
                 }
+                setEpicTime(epic, subTask);
             }
+            priority.add(task);
             tasks.put(task.getId(), task);
         } catch (WrongIdEpicException epicEx) {
             int id = epicEx.changeId();
@@ -115,7 +155,7 @@ public class InMemoryTaskManager implements TaskManager {
             if (!isExist(idTask)) {
                 throw new WrongIdException("Неверный id", scanner);
             }
-            final Task task = getTaskId(idTask);
+            final Task task = getTaskIdBase(idTask);
             final TypeTask typeTask = checkTypeTask(task);
             if (typeTask == TypeTask.EPIC) {
                 final Epic epic = (Epic) task;
@@ -126,7 +166,10 @@ public class InMemoryTaskManager implements TaskManager {
                 final SubTask subTask = (SubTask) task;
                 final Epic epic = (Epic) getTaskId(subTask.getEpicId());
                 epic.deleteSubtask(subTask.getId());
+                delEpicTime(epic,subTask);
+                setEpicTime(epic, subTask);
             }
+            priority.remove(task);
             inMemoryHistoryManager.remove(idTask);
             tasks.remove(idTask);
         } catch (WrongIdException ex) {

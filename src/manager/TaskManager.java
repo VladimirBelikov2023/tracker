@@ -20,4 +20,5 @@ public interface TaskManager {
     List<Integer> getSubtasks(int epicId);
 
     List<Task> getHistory();
+    List<Task> getPrioritizedTask();
 }
